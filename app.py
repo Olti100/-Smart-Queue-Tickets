@@ -371,5 +371,49 @@ def manager_dashboard():
         )
 
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if session.get("user_id"):
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if len(full_name) < 2:
+            flash("Please enter your full name.", "danger")
+        elif len(username) < 3:
+            flash("Username must be at least 3 characters.", "danger")
+        elif len(password) < 6:
+            flash("Password must be at least 6 characters.", "danger")
+        elif password != confirm_password:
+            flash("Passwords do not match.", "danger")
+        else:
+            with get_session() as db:
+                existing = db.scalar(select(User).where(User.username == username))
+                if existing:
+                    flash("That username is already registered.", "danger")
+                else:
+                    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                    user = User(
+                        full_name=full_name,
+                        username=username,
+                        password_hash=password_hash,
+                        role=Role.CUSTOMER,
+                        is_active=True,
+                    )
+                    db.add(user)
+                    db.flush()
+                    session["user_id"] = user.id
+                    session["user_name"] = user.full_name
+                    session["user_role"] = user.role.value
+                    flash("Account created successfully.", "success")
+                    return redirect(url_for("customer_portal"))
+
+    return render_template("register.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)

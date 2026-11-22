@@ -1,13 +1,41 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="card narrow">
-  <h1 class="title-xl">Control Center Login</h1>
-  <p class="hint">Access role-based queue operations for staff and management.</p>
-  <form method="post" class="form-grid">
-    <label>Username<input type="text" name="username" required></label>
-    <label>Password<input type="password" name="password" required></label>
-    <button type="submit">Sign In</button>
-  </form>
-  <p class="hint">Demo: admin/admin123, manager/manager123, reception/reception123, staff/staff123</p>
-</section>
+<div class="auth-layout">
+  <section class="auth-visual">
+    <div class="auth-logo"><img src="{{ url_for('static', filename='logo.svg') }}" alt="Smart Queue Tickets"></div>
+    <div>
+      <span class="eyebrow">Queue command center</span>
+      <h1>Move every customer<br>forward with clarity.</h1>
+      <p>Sign in to manage services, counters, analytics, and waiting-room updates.</p>
+    </div>
+  </section>
+
+  <section class="auth-card">
+    <div class="auth-heading">
+      <span class="eyebrow">Welcome back</span>
+      <h2>Sign in</h2>
+      <p>Use your staff or customer account.</p>
+    </div>
+
+    <form method="post" class="auth-form">
+      <label>Username
+        <input type="text" name="username" autocomplete="username" placeholder="Enter username" required>
+      </label>
+      <label>Password
+        <input type="password" name="password" autocomplete="current-password" placeholder="Enter password" required>
+      </label>
+      <button type="submit" class="primary-action">Sign in <span>→</span></button>
+    </form>
+
+    <details class="demo-access">
+      <summary>Demo accounts</summary>
+      <div><b>Admin</b> · admin / admin123</div>
+      <div><b>Manager</b> · manager / manager123</div>
+      <div><b>Reception</b> · reception / reception123</div>
+      <div><b>Staff</b> · staff / staff123</div>
+    </details>
+
+    <p class="auth-switch">New customer? <a href="{{ url_for('register') }}">Create account</a></p>
+  </section>
+</div>
 {% endblock %}

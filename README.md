@@ -44,6 +44,10 @@ The database is auto-created at first run in `data/smart_queue.db` with seeded d
 - reception / reception123
 - staff / staff123
 
+## Customer Accounts
+
+Customers can create a local account from `/register` and sign in at `/login`. New accounts receive the `CUSTOMER` role and can still use the public ticket portal.
+
 ## Run Tests
 
 ```bash
