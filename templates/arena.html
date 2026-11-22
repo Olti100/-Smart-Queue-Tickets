@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head">
+  <h1>Queue Arena</h1>
+  <p>Move through realistic capacity scenarios and watch the system predict the outcome instantly.</p>
+</section>
+
+<section class="arena-console">
+  <div class="arena-controls">
+    <span class="eyebrow">LIVE SCENARIO BUILDER</span>
+    <h2>Shape the pressure</h2>
+
+    <div class="scenario-picker" id="scenario-picker">
+      <button type="button" class="scenario-choice {% if scenario == 'normal' %}active{% endif %}" data-scenario="normal" data-incoming="6"><span>01</span><strong>Normal</strong><small>+6 arrivals</small></button>
+      <button type="button" class="scenario-choice {% if scenario == 'busy' %}active{% endif %}" data-scenario="busy" data-incoming="18"><span>02</span><strong>Busy</strong><small>+18 arrivals</small></button>
+      <button type="button" class="scenario-choice {% if scenario == 'surge' %}active{% endif %}" data-scenario="surge" data-incoming="36"><span>03</span><strong>Surge</strong><small>+36 arrivals</small></button>
+    </div>
+
+    <div class="arena-sliders">
+      <label>
+        <span><b>Incoming arrivals</b><strong id="incoming-value">{{ incoming }}</strong></span>
+        <input id="incoming-range" type="range" min="0" max="100" value="{{ incoming }}">
+      </label>
+      <label>
+        <span><b>Active counters</b><strong id="counter-value">{{ active_counters }}</strong></span>
+        <input id="counter-range" type="range" min="1" max="20" value="{{ active_counters }}">
+      </label>
+      <label>
+        <span><b>Service efficiency</b><strong id="speed-value">100%</strong></span>
+        <input id="speed-range" type="range" min="50" max="150" value="100">
+      </label>
+    </div>
+
+    <button type="button" class="arena-reset" id="arena-reset" data-live-counters="{{ active_counters }}">Reset to live state</button>
+  </div>
+
+  <div class="arena-live">
+    <div class="arena-orbit" id="arena-orbit">
+      <div class="arena-pulse"></div>
+      <strong id="arena-weather">{{ weather.label }}</strong>
+      <small>Projected weather</small>
+    </div>
+
+    <div class="arena-metrics">
+      <div><small>Waiting now</small><strong id="waiting-now">{{ waiting_count }}</strong></div>
+      <div><small>Incoming</small><strong id="incoming">+{{ incoming }}</strong></div>
+      <div><small>Projected queue</small><strong id="projected-queue">{{ projected_queue }}</strong></div>
+      <div><small>Projected wait</small><strong id="projected-wait">{{ projected_wait }}m</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="arena-insight">
+  <div>
+    <span class="eyebrow">LIVE CAPACITY READOUT</span>
+    <h2 id="arena-insight-title">{{ active_counters }} modeled counters</h2>
+  </div>
+  <div>
+    <p id="arena-recommendation">Model keeps the current counter capacity.</p>
+    <p id="arena-insight-copy">
+      {% if projected_wait < 20 %}Capacity appears comfortable for this scenario.
+      {% elif projected_wait < 45 %}Prepare one additional counter if the surge arrives.
+      {% else %}High pressure detected. Activate extra coverage immediately.{% endif %}
+    </p>
+  </div>
+</section>
+
+<script>
+  const scenarioChoices = document.querySelectorAll('.scenario-choice');
+  const incomingRange = document.getElementById('incoming-range');
+  const counterRange = document.getElementById('counter-range');
+  const speedRange = document.getElementById('speed-range');
+  const resetButton = document.getElementById('arena-reset');
+  const liveActiveCounters = Number(resetButton.dataset.liveCounters);
+  let activeScenario = 'normal';
+  let updateTimer;
+
+  function setActiveChoice(scenario) {
+    scenarioChoices.forEach(item => item.classList.toggle('active', item.dataset.scenario === scenario));
+  }
+
+  async function runArena() {
+    clearTimeout(updateTimer);
+    updateTimer = setTimeout(async () => {
+      const payload = {
+        scenario: activeScenario,
+        incoming: incomingRange.value,
+        active_counters: counterRange.value,
+        service_speed: speedRange.value
+      };
+
+      const response = await fetch('/arena/simulate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) return;
+      const data = await response.json();
+      const arena = data.arena;
+
+      document.getElementById('incoming-value').textContent = arena.incoming;
+      document.getElementById('counter-value').textContent = arena.active_counters;
+      document.getElementById('speed-value').textContent = `${arena.service_speed}%`;
+      document.getElementById('arena-weather').textContent = arena.weather;
+      document.getElementById('waiting-now').textContent = arena.waiting;
+      document.getElementById('incoming').textContent = `+${arena.incoming}`;
+      document.getElementById('projected-queue').textContent = arena.projected_queue;
+      document.getElementById('projected-wait').textContent = `${arena.projected_wait}m`;
+      document.getElementById('arena-insight-title').textContent = `${arena.active_counters} modeled counters`;
+      document.getElementById('arena-recommendation').textContent = arena.recommendation;
+      document.getElementById('arena-insight-copy').textContent = arena.action;
+
+      const orbit = document.getElementById('arena-orbit');
+      orbit.className = `arena-orbit weather-${arena.weather.toLowerCase()}`;
+      if (orbit.animate) {
+        orbit.animate([
+          {transform: 'scale(.96)', opacity: 0.78},
+          {transform: 'scale(1)', opacity: 1}
+        ], {duration: 260, easing: 'ease-out'});
+      }
+    }, 100);
+  }
+
+  scenarioChoices.forEach(choice => choice.addEventListener('click', () => {
+    activeScenario = choice.dataset.scenario;
+    incomingRange.value = choice.dataset.incoming;
+    setActiveChoice(activeScenario);
+    runArena();
+  }));
+
+  incomingRange.addEventListener('input', () => {
+    activeScenario = 'custom';
+    setActiveChoice('');
+    runArena();
+  });
+  counterRange.addEventListener('input', runArena);
+  speedRange.addEventListener('input', runArena);
+
+  resetButton.addEventListener('click', () => {
+    activeScenario = 'normal';
+    incomingRange.value = 6;
+    counterRange.value = liveActiveCounters || 1;
+    speedRange.value = 100;
+    setActiveChoice('normal');
+    runArena();
+  });
+</script>
+{% endblock %}

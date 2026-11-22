@@ -21,6 +21,11 @@
   </form>
 </section>
 
+<section class="weather-card weather-{{ weather.level }} display-weather">
+  <div><span class="weather-kicker">LIVE QUEUE WEATHER</span><strong>{{ weather.label }}</strong></div>
+  <div class="weather-stat"><small>Waiting</small><b>{{ weather.waiting }}</b></div>
+</section>
+
 <div class="grid two">
   <section class="card">
     <h3>Currently Serving</h3>

@@ -38,4 +38,43 @@
     </tbody>
   </table>
 </section>
+
+<section class="grid two coach-grid">
+  <div class="weather-card weather-{{ weather.level }}">
+    <div><span class="weather-kicker">QUEUE WEATHER</span><strong>{{ weather.label }}</strong></div>
+    <div class="weather-stat"><small>Waiting</small><b>{{ weather.waiting }}</b></div>
+  </div>
+
+  <div class="arena-card">
+    <div>
+      <span class="weather-kicker">INTERACTIVE QUEUE LAB</span>
+      <strong>Test a rush-hour scenario</strong>
+      <small>Predict capacity impact without changing real queue data.</small>
+    </div>
+    <a class="arena-button" href="{{ url_for('queue_arena') }}">Open Queue Arena →</a>
+  </div>
+</section>
+
+<section class="card coach-card">
+  <div class="coach-heading">
+    <div>
+      <span class="eyebrow">SMART QUEUE COACH</span>
+      <h2>Recommended actions</h2>
+    </div>
+  </div>
+  <div class="coach-list">
+    {% for item in coach %}
+    <article class="coach-item {{ item.severity }}">
+      <div class="coach-severity"></div>
+      <div>
+        <h3>{{ item.department }}</h3>
+        <p>{{ item.action }}</p>
+        <small>{{ item.impact }} {{ item.waiting }} waiting · {{ item.active_counters }} active counters</small>
+      </div>
+    </article>
+    {% else %}
+    <p>No departments available.</p>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

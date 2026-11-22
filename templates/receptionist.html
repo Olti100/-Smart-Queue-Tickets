@@ -52,7 +52,7 @@
           <form method="post" class="inline-form">
             <input type="hidden" name="action" value="cancel">
             <input type="hidden" name="ticket_id" value="{{ t.id }}">
-            <button type="submit">Cancel</button>
+            <button type="submit" class="warning-action">Cancel</button>
           </form>
           <form method="post" class="inline-form">
             <input type="hidden" name="action" value="transfer">
@@ -60,7 +60,7 @@
             <select name="target_service_id">
               {% for s in services %}<option value="{{ s.id }}">{{ s.department.name }} - {{ s.name }}</option>{% endfor %}
             </select>
-            <button type="submit">Transfer</button>
+            <button type="submit" class="primary-action">Transfer</button>
           </form>
         </td>
       </tr>

@@ -67,4 +67,12 @@
     <button type="submit">Submit Feedback</button>
   </form>
 </section>
+
+<section class="weather-card weather-{{ weather.level }}">
+  <div>
+    <span class="weather-kicker">LIVE QUEUE WEATHER</span>
+    <strong>{{ weather.label }}</strong>
+  </div>
+  <div class="weather-stat"><small>Waiting now</small><b>{{ weather.waiting }}</b></div>
+</section>
 {% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head database-head">
+  <div>
+    <span class="eyebrow">SYSTEM CONTROL</span>
+    <h1>Database Panel</h1>
+    <p>Browse and safely manage local SQLite records.</p>
+  </div>
+  <div class="database-file">
+    <small>LOCAL DATABASE</small>
+    <strong>{{ db_path }}</strong>
+  </div>
+</section>
+
+<section class="database-summary">
+  {% for name, pair in table_names.items() %}
+  <a class="database-count {% if name == table_name %}active{% endif %}" href="{{ url_for('database_panel', table=name) }}">
+    <div class="database-count-copy"><span>{{ pair[1] }}</span><strong>{{ counts[name] }}</strong></div>
+    <span class="database-count-arrow" aria-hidden="true">→</span>
+  </a>
+  {% endfor %}
+</section>
+
+<section class="card database-toolbar">
+  <div>
+    <span class="eyebrow">TABLE</span>
+    <h2>{{ table_label }}</h2>
+  </div>
+  <div class="database-actions">
+    <form method="get" class="form-inline">
+      <input type="hidden" name="table" value="{{ table_name }}">
+      <input name="q" value="{{ query_text }}" placeholder="Search visible records">
+      <button type="submit">Search</button>
+    </form>
+    <a class="export-button" href="{{ url_for('export_database_table', table_name=table_name) }}">Export CSV</a>
+  </div>
+</section>
+
+<section class="card database-table-card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          {% for column in columns %}<th>{{ column.replace('_', ' ').title() }}</th>{% endfor %}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for column in columns %}
+          <td>
+            {% if column == 'status' %}<span class="badge status-{{ row[column].lower() }}">{{ row[column] }}</span>
+            {% else %}{{ row[column] }}{% endif %}
+          </td>
+          {% endfor %}
+          <td>
+            <form method="post" action="{{ url_for('database_action') }}" class="record-actions">
+              <input type="hidden" name="table" value="{{ table_name }}">
+              <input type="hidden" name="record_id" value="{{ row.id }}">
+
+              {% if table_name == 'tickets' %}
+              <button type="submit" name="action" value="cancel" class="small-action warning-action">Cancel ticket</button>
+              <button type="submit" name="action" value="delete" class="small-action danger-action" onclick="return confirm('Delete this ticket and its related event records?')">Delete</button>
+              {% elif table_name == 'users' %}
+              <button type="submit" name="action" value="toggle_active" class="small-action">Toggle Active</button>
+              {% elif table_name == 'counters' %}
+              <button type="submit" name="action" value="pause" class="small-action warning-action">Pause</button>
+              <button type="submit" name="action" value="resume" class="small-action">Resume</button>
+              {% elif table_name in ['departments', 'services'] %}
+              <button type="submit" name="action" value="toggle_active" class="small-action">Toggle Active</button>
+              {% elif table_name in ['customer_feedback', 'ticket_events', 'settings', 'queue_metrics'] %}
+              <button type="submit" name="action" value="delete" class="small-action danger-action" onclick="return confirm('Delete this record?')">Delete</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ columns|length + 1 }}" class="empty-row">No records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if session.get('user_role') == 'ADMIN' %}
+<section class="danger-zone">
+  <div>
+    <span class="eyebrow">ADMIN RESET</span>
+    <h2>Clear operational data</h2>
+    <p>Deletes tickets, events, feedback, and queue metrics. Configuration and accounts remain preserved.</p>
+  </div>
+  <form method="post" action="{{ url_for('reset_operational_database') }}" class="reset-form">
+    <input name="confirmation" placeholder="Type CLEAR OPERATIONAL DATA" required>
+    <button type="submit" class="danger-action">Clear Data</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

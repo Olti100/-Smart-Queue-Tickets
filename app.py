@@ -5,11 +5,15 @@ from functools import wraps
 from os import getenv
 
 import bcrypt
-from flask import Flask, flash, redirect, render_template, request, session, url_for
-from sqlalchemy import desc, or_, select
+from config import DB_PATH
+import csv
+import io
+from flask import Flask, Response, flash, redirect, render_template, request, session, url_for
+from sqlalchemy import desc, func, or_, select
 
 from core.analytics_engine import AnalyticsEngine
 from core.queue_engine import QueueEngine
+from core.wait_predictor import WaitPredictor
 from database.bootstrap import bootstrap_database
 from database.connection import get_session
 from database.models import (
@@ -17,9 +21,12 @@ from database.models import (
     CustomerFeedback,
     Department,
     PriorityCategory,
+    QueueMetric,
     Role,
     Service,
+    Setting,
     Ticket,
+    TicketEvent,
     TicketStatus,
     User,
 )
@@ -118,6 +125,9 @@ def customer_portal():
         departments = list(db.scalars(select(Department).where(Department.is_active.is_(True))).all())
         services = list(db.scalars(select(Service).where(Service.is_active.is_(True))).all())
 
+        predictor = WaitPredictor(db)
+        weather = predictor.queue_weather()
+
         if request.method == "POST":
             action = request.form.get("action")
 
@@ -175,6 +185,7 @@ def customer_portal():
             services=services,
             tracked=tracked,
             priorities=[p.value for p in PriorityCategory],
+            weather=weather,
         )
 
 
@@ -337,6 +348,8 @@ def public_display():
             waiting_stmt = waiting_stmt.where(Ticket.department_id == dep_id)
         waiting = list(db.scalars(waiting_stmt).all())
 
+        weather = WaitPredictor(db).queue_weather(dep_id)
+
         return render_template(
             "display.html",
             called=called,
@@ -344,6 +357,7 @@ def public_display():
             departments=departments,
             dep_id=dep_id,
             now=datetime.now(),
+            weather=weather,
         )
 
 
@@ -362,12 +376,18 @@ def manager_dashboard():
         kpis = analytics.kpis(start_date, end_date)
         peak_hours = analytics.peak_hours(start_date, end_date).to_dict("records")
 
+        predictor = WaitPredictor(db)
+        weather = predictor.queue_weather()
+        coach = predictor.smart_coach()
+
         return render_template(
             "manager.html",
             kpis=kpis,
             peak_hours=peak_hours,
             start=start_date.date().isoformat(),
             end=end_date.date().isoformat(),
+            weather=weather,
+            coach=coach,
         )
 
 
@@ -413,6 +433,285 @@ def register():
                     return redirect(url_for("customer_portal"))
 
     return render_template("register.html")
+
+
+@app.get("/arena")
+@login_required
+@roles_required(Role.ADMIN, Role.MANAGER)
+def queue_arena():
+    scenario = request.args.get("scenario", "normal")
+    incoming = {"normal": 6, "busy": 18, "surge": 36}.get(scenario, 6)
+
+    with get_session() as db:
+        waiting_count = db.scalar(select(func.count(Ticket.id)).where(Ticket.status == TicketStatus.WAITING)) or 0
+        active_counters = db.scalar(select(func.count(Counter.id)).where(Counter.is_active.is_(True), Counter.is_paused.is_(False))) or 0
+        average_wait = db.scalar(select(func.avg(Ticket.estimated_wait_minutes)).where(Ticket.status == TicketStatus.WAITING))
+
+        projected_queue = waiting_count + incoming
+        projected_wait = int(round(projected_queue * max(float(average_wait or 8), 4) / max(active_counters, 1)))
+        queue_weather_live = WaitPredictor(db).queue_weather()
+
+    return render_template(
+        "arena.html",
+        scenario=scenario,
+        incoming=incoming,
+        waiting_count=waiting_count,
+        active_counters=active_counters,
+        projected_queue=projected_queue,
+        projected_wait=projected_wait,
+        weather=queue_weather_live,
+    )
+
+
+@app.post("/arena/simulate")
+@login_required
+@roles_required(Role.ADMIN, Role.MANAGER)
+def simulate_queue_arena():
+    payload = request.get_json(silent=True) or request.form
+
+    scenario = str(payload.get("scenario", request.args.get("scenario", "normal"))).lower()
+    try:
+        incoming = max(0, min(int(payload.get("incoming", {"normal": 6, "busy": 18, "surge": 36}.get(scenario, 6))), 100))
+    except (TypeError, ValueError):
+        incoming = 6
+    try:
+        simulated_counters = max(1, min(int(payload.get("active_counters", 1)), 20))
+    except (TypeError, ValueError):
+        simulated_counters = 1
+    try:
+        service_speed = max(50, min(int(payload.get("service_speed", 100)), 150))
+    except (TypeError, ValueError):
+        service_speed = 100
+
+    with get_session() as db:
+        waiting_count = db.scalar(select(func.count(Ticket.id)).where(Ticket.status == TicketStatus.WAITING)) or 0
+        live_active_counters = db.scalar(select(func.count(Counter.id)).where(Counter.is_active.is_(True), Counter.is_paused.is_(False))) or 0
+        average_wait = db.scalar(select(func.avg(Ticket.estimated_wait_minutes)).where(Ticket.status == TicketStatus.WAITING))
+
+        avg_wait = max(float(average_wait or 8), 4)
+        projected_queue = waiting_count + incoming
+        projected_wait = int(round(projected_queue * avg_wait * (100 / service_speed) / max(simulated_counters, 1)))
+
+        workload = projected_queue / max(simulated_counters, 1)
+        if workload <= 3:
+            weather = "CALM"
+        elif workload <= 8:
+            weather = "BUSY"
+        else:
+            weather = "CRITICAL"
+
+        capacity_delta = simulated_counters - live_active_counters
+        if capacity_delta > 0:
+            recommendation = f"Model opens {capacity_delta} additional counter{'s' if capacity_delta != 1 else ''}."
+        elif capacity_delta < 0:
+            recommendation = f"Model closes {abs(capacity_delta)} active counter{'s' if abs(capacity_delta) != 1 else ''}."
+        else:
+            recommendation = "Model keeps the current counter capacity."
+
+        if projected_wait < 20:
+            action = "Capacity appears comfortable for this scenario."
+        elif projected_wait < 45:
+            action = "Prepare one additional counter if the surge arrives."
+        else:
+            action = "High pressure detected. Activate extra coverage immediately."
+
+    return {"arena": {
+        "scenario": scenario,
+        "incoming": incoming,
+        "waiting": waiting_count,
+        "live_active_counters": live_active_counters,
+        "active_counters": simulated_counters,
+        "service_speed": service_speed,
+        "projected_queue": projected_queue,
+        "projected_wait": projected_wait,
+        "weather": weather,
+        "recommendation": recommendation,
+        "action": action,
+    }}
+
+
+DATABASE_TABLES = {
+    "users": (User, "Users"),
+    "departments": (Department, "Departments"),
+    "services": (Service, "Services"),
+    "counters": (Counter, "Counters"),
+    "tickets": (Ticket, "Tickets"),
+    "ticket_events": (TicketEvent, "Ticket Events"),
+    "customer_feedback": (CustomerFeedback, "Customer Feedback"),
+    "settings": (Setting, "Settings"),
+    "queue_metrics": (QueueMetric, "Queue Metrics"),
+}
+
+
+def _serialize_db_value(value):
+    if hasattr(value, "value"):
+        return value.value
+    if isinstance(value, datetime):
+        return value.isoformat(sep=" ", timespec="seconds")
+    if value is None:
+        return "—"
+    return str(value)
+
+
+@app.get("/database")
+@login_required
+@roles_required(Role.ADMIN, Role.MANAGER)
+def database_panel():
+    table_name = request.args.get("table", "tickets").strip().lower()
+    if table_name not in DATABASE_TABLES:
+        table_name = "tickets"
+    query_text = request.args.get("q", "").strip()
+
+    model, label = DATABASE_TABLES[table_name]
+    columns = [column for column in model.__table__.columns if column.key != "password_hash"]
+
+    with get_session() as db:
+        counts = {
+            name: db.scalar(select(func.count()).select_from(model_class)) or 0
+            for name, (model_class, _label) in DATABASE_TABLES.items()
+        }
+
+        stmt = select(model).order_by(desc(model.id)).limit(100)
+        if query_text:
+            search_columns = [column for column in model.__table__.columns if getattr(column.type, "python_type", None) is str]
+            if "password_hash" in [column.key for column in search_columns]:
+                search_columns = [column for column in search_columns if column.key != "password_hash"]
+            if search_columns:
+                stmt = stmt.where(or_(*[column.ilike(f"%{query_text}%") for column in search_columns]))
+
+        records = list(db.scalars(stmt).all())
+        rows = []
+        for record in records:
+            row = {column.key: _serialize_db_value(getattr(record, column.key)) for column in columns}
+            row["id"] = record.id
+            rows.append(row)
+
+        return render_template(
+            "database.html",
+            table_name=table_name,
+            table_label=label,
+            table_names=DATABASE_TABLES,
+            counts=counts,
+            columns=[column.key for column in columns],
+            rows=rows,
+            query_text=query_text,
+            db_path=str(DB_PATH),
+        )
+
+
+@app.get("/database/export/<table_name>")
+@login_required
+@roles_required(Role.ADMIN, Role.MANAGER)
+def export_database_table(table_name):
+    if table_name not in DATABASE_TABLES:
+        flash("Unknown database table.", "danger")
+        return redirect(url_for("database_panel"))
+
+    model, label = DATABASE_TABLES[table_name]
+    columns = [column for column in model.__table__.columns if column.key != "password_hash"]
+
+    with get_session() as db:
+        records = list(db.scalars(select(model).order_by(desc(model.id)).limit(1000)).all())
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([column.key for column in columns])
+        for record in records:
+            writer.writerow([_serialize_db_value(getattr(record, column.key)) for column in columns])
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={table_name}.csv"},
+    )
+
+
+@app.post("/database/action")
+@login_required
+@roles_required(Role.ADMIN, Role.MANAGER)
+def database_action():
+    table_name = request.form.get("table", "")
+    record_id = request.form.get("record_id", type=int)
+    action = request.form.get("action", "")
+
+    if table_name not in DATABASE_TABLES or not record_id:
+        flash("Invalid database action.", "danger")
+        return redirect(url_for("database_panel", table=table_name or "tickets"))
+
+    model, _label = DATABASE_TABLES[table_name]
+
+    with get_session() as db:
+        record = db.get(model, record_id)
+        if not record:
+            flash("Record not found.", "danger")
+            return redirect(url_for("database_panel", table=table_name))
+
+        if table_name == "tickets":
+            if action == "cancel":
+                record.status = TicketStatus.CANCELLED
+                db.flush()
+                db.add(TicketEvent(ticket_id=record.id, event_type="CANCELLED", note="Cancelled from Database Panel", performed_by_user_id=session.get("user_id")))
+                flash("Ticket cancelled.", "warning")
+            elif action == "delete":
+                db.query(TicketEvent).filter(TicketEvent.ticket_id == record.id).delete(synchronize_session=False)
+                db.query(CustomerFeedback).filter(CustomerFeedback.ticket_id == record.id).delete(synchronize_session=False)
+                db.delete(record)
+                flash("Ticket deleted.", "warning")
+            else:
+                flash("Unknown ticket action.", "danger")
+
+        elif table_name == "users":
+            if record.id == session.get("user_id"):
+                flash("You cannot deactivate your own account.", "danger")
+            elif action == "toggle_active":
+                record.is_active = not record.is_active
+                flash("User status updated.", "success")
+            elif action == "delete":
+                flash("User deletion is disabled for account safety.", "danger")
+
+        elif table_name == "counters":
+            if action == "pause":
+                record.is_paused = True
+                flash("Counter paused.", "warning")
+            elif action == "resume":
+                record.is_paused = False
+                flash("Counter resumed.", "success")
+            elif action == "toggle_active":
+                record.is_active = not record.is_active
+                flash("Counter status updated.", "success")
+
+        elif table_name in {"departments", "services"}:
+            if action == "toggle_active":
+                record.is_active = not record.is_active
+                flash("Record status updated.", "success")
+
+        elif table_name in {"customer_feedback", "ticket_events", "settings", "queue_metrics"}:
+            if action == "delete":
+                db.delete(record)
+                flash("Record deleted.", "warning")
+
+        else:
+            flash("No safe action is available for this table.", "danger")
+
+    return redirect(url_for("database_panel", table=table_name))
+
+
+@app.post("/database/reset-operational")
+@login_required
+@roles_required(Role.ADMIN)
+def reset_operational_database():
+    confirmation = request.form.get("confirmation", "").strip()
+    if confirmation != "CLEAR OPERATIONAL DATA":
+        flash("Reset cancelled. Type the exact confirmation text.", "danger")
+        return redirect(url_for("database_panel", table="tickets"))
+
+    with get_session() as db:
+        db.query(CustomerFeedback).delete(synchronize_session=False)
+        db.query(TicketEvent).delete(synchronize_session=False)
+        db.query(Ticket).delete(synchronize_session=False)
+        db.query(QueueMetric).delete(synchronize_session=False)
+
+    flash("Operational ticket data cleared. Departments, services, counters, and users were preserved.", "warning")
+    return redirect(url_for("database_panel", table="tickets"))
 
 
 if __name__ == "__main__":

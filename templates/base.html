@@ -43,7 +43,13 @@
         <a class="side-link {% if request.path == url_for('manager_dashboard') %}active{% endif %}" href="{{ url_for('manager_dashboard') }}">
           <span class="nav-icon">◫</span><span>Analytics</span>
         </a>
+        <a class="side-link {% if request.path == url_for('database_panel') %}active{% endif %}" href="{{ url_for('database_panel') }}">
+          <span class="nav-icon">▤</span><span>Database</span>
+        </a>
         {% endif %}
+        <a class="side-link {% if request.path == url_for('queue_arena') %}active{% endif %}" href="{{ url_for('queue_arena') }}">
+          <span class="nav-icon">⌁</span><span>Queue Arena</span>
+        </a>
       </div>
       {% endif %}
 
@@ -67,7 +73,7 @@
           <img src="{{ url_for('static', filename='logo.svg') }}" alt="Logo">
           <strong>Smart Queue</strong>
         </a>
-        <button class="menu-button" type="button" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Toggle navigation">☰</button>
+        <button class="menu-button" id="menu-button" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
       </header>
 
       <main class="content">
@@ -82,5 +88,38 @@
       </main>
     </section>
   </div>
+
+  <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation"></button>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('menu-button');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+    function setSidebar(open) {
+      if (!sidebar || !menuButton) return;
+      sidebar.classList.toggle('open', open);
+      document.body.classList.toggle('nav-open', open);
+      menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+      sidebarBackdrop?.classList.toggle('open', open);
+    }
+
+    menuButton?.addEventListener('click', () => setSidebar(!sidebar.classList.contains('open')));
+    sidebarBackdrop?.addEventListener('click', () => setSidebar(false));
+
+    document.querySelectorAll('.sidebar a').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 760) setSidebar(false);
+      });
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setSidebar(false);
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 760) setSidebar(false);
+    });
+  </script>
 </body>
 </html>

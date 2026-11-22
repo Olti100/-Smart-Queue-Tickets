@@ -26,12 +26,12 @@
   </div>
 
   <div class="actions">
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="call_next"><button>Call Next</button></form>
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="start"><button>Start Service</button></form>
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="complete"><button>Complete Service</button></form>
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="recall"><button>Recall</button></form>
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="pause"><button>Pause Counter</button></form>
-    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="resume"><button>Resume Counter</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="call_next"><button class="primary-action">Call Next</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="start"><button class="primary-action">Start Service</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="complete"><button class="primary-action">Complete Service</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="recall"><button class="secondary-action">Recall</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="pause"><button class="warning-action">Pause Counter</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="resume"><button class="secondary-action">Resume Counter</button></form>
   </div>
 
   <form method="post" class="form-inline">
