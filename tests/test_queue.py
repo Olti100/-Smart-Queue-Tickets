@@ -14,6 +14,8 @@ def test_queue_order_and_priority():
         dept = session.query(Department).first()
         service = session.query(Service).filter_by(department_id=dept.id).first()
         counter = session.query(Counter).filter_by(department_id=dept.id).first()
+        counter.is_active = True
+        counter.is_paused = False
         staff = session.query(User).filter_by(username="staff").first()
 
         svc = TicketService(session)

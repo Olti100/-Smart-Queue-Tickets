@@ -2,30 +2,58 @@
 {% block content %}
 <section class="page-head">
   <h1>Staff Operations</h1>
-  <p>Call, serve, and complete customers with fast counter controls.</p>
+  <p>Operate issued digital tickets at your counter—call, serve, complete, recall, skip, pause, or resume service.</p>
 </section>
 
-<section class="card">
-  <h2>Staff Dashboard</h2>
-  <form method="get" class="form-inline">
-    <label>Counter
-      <select name="counter_id">
-        {% for c in counters %}
-        <option value="{{ c.id }}" {% if selected_counter and c.id == selected_counter.id %}selected{% endif %}>{{ c.name }} ({{ c.department.name }})</option>
-        {% endfor %}
-      </select>
-    </label>
-    <button type="submit">Load</button>
-  </form>
-
-  {% if selected_counter %}
-  <div class="ticket-box">
-    <p><strong>Selected Counter:</strong> {{ selected_counter.name }}</p>
-    <p><strong>Counter Status:</strong> <span class="badge">{{ 'Paused' if selected_counter.is_paused else 'Active' }}</span></p>
-    <p><strong>Current Ticket:</strong> {{ current_ticket.ticket_number if current_ticket else 'None' }}</p>
+<section class="card staff-console">
+  <div class="staff-console-header">
+    <div>
+      <span class="eyebrow">COUNTER WORKSPACE</span>
+      <h2>Service control</h2>
+    </div>
+    <form method="get" class="form-inline">
+      <label>Counter
+        <select name="counter_id">
+          {% for c in counters %}
+          <option value="{{ c.id }}" {% if selected_counter and c.id == selected_counter.id %}selected{% endif %}>{{ c.name }} ({{ c.department.name }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Load counter</button>
+    </form>
   </div>
 
-  <div class="actions">
+  {% if selected_counter %}
+  <section class="desk-kpis staff-kpis">
+    <div><span>Waiting</span><strong>{{ staff_summary.waiting }}</strong></div>
+    <div><span>Completed Today</span><strong>{{ staff_summary.completed_today }}</strong></div>
+    <div><span>Avg Service</span><strong>{{ staff_summary.average_service }}m</strong></div>
+    <div><span>Elapsed</span><strong>{{ staff_summary.elapsed_service }}m</strong></div>
+  </section>
+
+  <div class="staff-operation-grid">
+    <div class="ticket-box staff-current-ticket">
+      <span class="eyebrow">CURRENT SERVICE</span>
+      <strong class="staff-current-id">{{ current_ticket.ticket_number if current_ticket else 'READY' }}</strong>
+      <p><strong>Selected Counter:</strong> {{ selected_counter.name }}</p>
+      <p><strong>Counter Status:</strong> <span class="badge">{{ 'Paused' if selected_counter.is_paused else 'Active' }}</span></p>
+      <p><strong>Elapsed:</strong> {{ staff_summary.elapsed_service }} minutes</p>
+    </div>
+
+    <div class="ticket-box staff-next-ticket">
+      <span class="eyebrow">NEXT IN QUEUE</span>
+      {% if staff_summary.next_ticket %}
+      <strong class="staff-next-id">{{ staff_summary.next_ticket.ticket_number }}</strong>
+      <p>{{ staff_summary.next_ticket.customer_name or 'Walk-in customer' }}</p>
+      <p>{{ staff_summary.next_ticket.priority_category.value }} priority</p>
+      {% else %}
+      <strong class="staff-next-id">—</strong>
+      <p>No waiting customers.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="desk-actions">
     <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="call_next"><button class="primary-action">Call Next</button></form>
     <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="start"><button class="primary-action">Start Service</button></form>
     <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="complete"><button class="primary-action">Complete Service</button></form>
@@ -34,17 +62,27 @@
     <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="resume"><button class="secondary-action">Resume Counter</button></form>
   </div>
 
-  <form method="post" class="form-inline">
-    <input type="hidden" name="counter_id" value="{{ selected_counter.id }}">
-    <input type="hidden" name="action" value="skip">
-    <input name="skip_reason" placeholder="Skip reason" value="No response">
-    <button>Skip Ticket</button>
-  </form>
+  <div class="staff-bottom-grid">
+    <form method="post" class="card skip-card">
+      <span class="eyebrow">SKIP CONTROL</span>
+      <h3>Record no response</h3>
+      <input type="hidden" name="counter_id" value="{{ selected_counter.id }}">
+      <input type="hidden" name="action" value="skip">
+      <label>Skip reason<input name="skip_reason" placeholder="No response" value="No response"></label>
+      <button type="submit" class="warning-action">Skip Ticket</button>
+    </form>
 
-  <h3>Waiting in Department</h3>
-  <ul>
-    {% for t in waiting %}<li>{{ t.ticket_number }} - {{ t.customer_name or 'Walk-in' }}</li>{% else %}<li>No waiting tickets.</li>{% endfor %}
-  </ul>
+    <section class="card waiting-card">
+      <div class="chart-heading"><div><span class="eyebrow">QUEUE PREVIEW</span><h3>Waiting in department</h3></div><span class="badge">{{ waiting|length }} tickets</span></div>
+      <div class="waiting-list">
+        {% for t in waiting %}
+        <div class="waiting-list-item"><strong>{{ t.ticket_number }}</strong><span>{{ t.customer_name or 'Walk-in' }} · {{ t.priority_category.value }}</span></div>
+        {% else %}
+        <div class="waiting-list-item"><strong>—</strong><span>No waiting tickets.</span></div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
   {% endif %}
 </section>
 {% endblock %}

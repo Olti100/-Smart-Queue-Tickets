@@ -238,7 +238,10 @@ def receptionist_dashboard():
             return redirect(url_for("receptionist_dashboard"))
 
         query = request.args.get("q", "").strip()
-        stmt = select(Ticket).order_by(desc(Ticket.created_at)).limit(60)
+        status_filter = request.args.get("status", "ALL").strip().upper()
+        department_filter = request.args.get("department_id", type=int)
+
+        stmt = select(Ticket).order_by(desc(Ticket.created_at)).limit(100)
         if query:
             stmt = stmt.where(
                 or_(
@@ -246,7 +249,30 @@ def receptionist_dashboard():
                     Ticket.customer_name.ilike(f"%{query}%"),
                 )
             )
+        if status_filter != "ALL":
+            try:
+                stmt = stmt.where(Ticket.status == TicketStatus(status_filter))
+            except ValueError:
+                status_filter = "ALL"
+        if department_filter:
+            stmt = stmt.where(Ticket.department_id == department_filter)
+
         tickets = list(db.scalars(stmt).all())
+
+        waiting_count = db.scalar(select(func.count(Ticket.id)).where(Ticket.status == TicketStatus.WAITING)) or 0
+        called_count = db.scalar(select(func.count(Ticket.id)).where(Ticket.status == TicketStatus.CALLED)) or 0
+        serving_count = db.scalar(select(func.count(Ticket.id)).where(Ticket.status == TicketStatus.SERVING)) or 0
+        completed_today = db.scalar(select(func.count(Ticket.id)).where(
+            Ticket.status == TicketStatus.COMPLETED,
+            Ticket.completed_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
+        )) or 0
+
+        reception_summary = {
+            "waiting": waiting_count,
+            "called": called_count,
+            "serving": serving_count,
+            "completed_today": completed_today,
+        }
 
         return render_template(
             "receptionist.html",
@@ -255,6 +281,9 @@ def receptionist_dashboard():
             services=services,
             priorities=[p.value for p in PriorityCategory],
             query=query,
+            status_filter=status_filter,
+            department_filter=department_filter,
+            reception_summary=reception_summary,
         )
 
 
@@ -325,12 +354,43 @@ def staff_dashboard():
             ).all()
         )
 
+        waiting_count = len(waiting)
+        next_ticket = waiting[0] if waiting else None
+        completed_today = db.scalar(select(func.count(Ticket.id)).where(
+            Ticket.counter_id == selected_counter.id,
+            Ticket.status == TicketStatus.COMPLETED,
+            Ticket.completed_at >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
+        )) or 0
+
+        completed_durations = []
+        for ticket in db.scalars(select(Ticket).where(
+            Ticket.counter_id == selected_counter.id,
+            Ticket.status == TicketStatus.COMPLETED,
+            Ticket.service_started_at.is_not(None),
+            Ticket.completed_at.is_not(None),
+        )).all():
+            completed_durations.append((ticket.completed_at - ticket.service_started_at).total_seconds() / 60)
+        average_service = round(sum(completed_durations) / len(completed_durations), 1) if completed_durations else 0
+
+        elapsed_service = 0
+        if current_ticket and current_ticket.service_started_at:
+            elapsed_service = max(int((datetime.utcnow() - current_ticket.service_started_at).total_seconds() / 60), 0)
+
+        staff_summary = {
+            "waiting": waiting_count,
+            "completed_today": completed_today,
+            "average_service": average_service,
+            "elapsed_service": elapsed_service,
+            "next_ticket": next_ticket,
+        }
+
         return render_template(
             "staff.html",
             counters=counters,
             selected_counter=selected_counter,
             current_ticket=current_ticket,
             waiting=waiting,
+            staff_summary=staff_summary,
         )
 
 
@@ -375,19 +435,101 @@ def manager_dashboard():
         analytics = AnalyticsEngine(db)
         kpis = analytics.kpis(start_date, end_date)
         peak_hours = analytics.peak_hours(start_date, end_date).to_dict("records")
+        hourly_counts = {hour: 0 for hour in range(24)}
+        for row in peak_hours:
+            hourly_counts[int(row["hour"])] = int(row["tickets"])
+        peak_hour_max = max(hourly_counts.values(), default=0) or 1
+        peak_hour_bars = [
+            {"hour": hour, "count": count, "height": round((count / peak_hour_max) * 100)}
+            for hour, count in hourly_counts.items()
+        ]
 
         predictor = WaitPredictor(db)
         weather = predictor.queue_weather()
         coach = predictor.smart_coach()
 
+        tickets = list(db.scalars(
+            select(Ticket).where(Ticket.created_at >= start_date, Ticket.created_at <= end_date)
+        ).all())
+
+        trend_days = []
+        trend_values = []
+        for offset in range(6, -1, -1):
+            day = end_date.date() - timedelta(days=offset)
+            count = sum(1 for ticket in tickets if ticket.created_at.date() == day)
+            trend_days.append(day.strftime("%a"))
+            trend_values.append(count)
+
+        trend_max = max(trend_values, default=0) or 1
+        trend_points = []
+        for index, value in enumerate(trend_values):
+            x = 20 + (index * (560 / 6))
+            y = 180 - ((value / trend_max) * 140)
+            trend_points.append({"x": round(x, 1), "y": round(y, 1), "value": value, "day": trend_days[index]})
+
+        status_counts = {
+            "Waiting": len([ticket for ticket in tickets if ticket.status == TicketStatus.WAITING]),
+            "Serving": len([ticket for ticket in tickets if ticket.status in (TicketStatus.CALLED, TicketStatus.SERVING)]),
+            "Completed": len([ticket for ticket in tickets if ticket.status == TicketStatus.COMPLETED]),
+            "Other": len([ticket for ticket in tickets if ticket.status not in (
+                TicketStatus.WAITING, TicketStatus.CALLED, TicketStatus.SERVING, TicketStatus.COMPLETED,
+            )]),
+        }
+        status_total = sum(status_counts.values()) or 1
+        status_mix = []
+        status_offset = 0
+        for name, count in status_counts.items():
+            percent = round((count / status_total) * 100)
+            status_mix.append({"name": name, "count": count, "percent": percent, "offset": status_offset})
+            status_offset += percent
+
+        status_gradient_parts = []
+        gradient_start = 0
+        gradient_colors = {"Waiting": "#f79009", "Serving": "#4f46e5", "Completed": "#16b364", "Other": "#98a2b3"}
+        for item in status_mix:
+            gradient_end = gradient_start + item["percent"]
+            status_gradient_parts.append(f'{gradient_colors[item["name"]]} {gradient_start}% {gradient_end}%')
+            gradient_start = gradient_end
+        status_gradient = "conic-gradient(" + ",".join(status_gradient_parts) + ")"
+
+        department_counts = {}
+        for ticket in tickets:
+            department_name = ticket.department.name if ticket.department else "Unknown"
+            department_counts[department_name] = department_counts.get(department_name, 0) + 1
+        department_mix = sorted(
+            ({"name": name, "count": count} for name, count in department_counts.items()),
+            key=lambda item: item["count"],
+            reverse=True,
+        )[:6]
+
+        counter_stats = []
+        counters = list(db.scalars(select(Counter).where(Counter.is_active.is_(True))).all())
+        for counter in counters:
+            waiting_count = db.scalar(select(func.count(Ticket.id)).where(
+                Ticket.counter_id == counter.id,
+                Ticket.status.in_((TicketStatus.CALLED, TicketStatus.SERVING)),
+            )) or 0
+            completed_count = db.scalar(select(func.count(Ticket.id)).where(
+                Ticket.counter_id == counter.id,
+                Ticket.status == TicketStatus.COMPLETED,
+            )) or 0
+            capacity = min(((completed_count + 1) * 15) + (waiting_count * 25), 100)
+            counter_stats.append({"name": counter.name, "waiting": waiting_count, "completed": completed_count, "capacity": capacity, "paused": counter.is_paused})
+
         return render_template(
             "manager.html",
             kpis=kpis,
             peak_hours=peak_hours,
+            peak_hour_bars=peak_hour_bars,
             start=start_date.date().isoformat(),
             end=end_date.date().isoformat(),
             weather=weather,
             coach=coach,
+            trend_points=trend_points,
+            status_mix=status_mix,
+            status_gradient=status_gradient,
+            department_mix=department_mix,
+            counter_stats=counter_stats,
         )
 
 

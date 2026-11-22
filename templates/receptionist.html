@@ -2,7 +2,36 @@
 {% block content %}
 <section class="page-head">
   <h1>Reception Desk</h1>
-  <p>Register walk-ins, search tickets, and resolve queue issues quickly.</p>
+  <p>Issue digital tickets, register walk-ins, transfer customers, and resolve queue issues from one reception workspace.</p>
+</section>
+
+<section class="desk-kpis">
+  <div><span>Waiting</span><strong>{{ reception_summary.waiting }}</strong></div>
+  <div><span>Called</span><strong>{{ reception_summary.called }}</strong></div>
+  <div><span>Serving</span><strong>{{ reception_summary.serving }}</strong></div>
+  <div><span>Completed Today</span><strong>{{ reception_summary.completed_today }}</strong></div>
+</section>
+
+<section class="desk-filter-card">
+  <form method="get" class="form-inline">
+    <label>Search<input name="q" value="{{ query }}" placeholder="Ticket or customer"></label>
+    <label>Status
+      <select name="status">
+        {% for status in ['ALL','WAITING','CALLED','SERVING','COMPLETED','SKIPPED','CANCELLED','NO_SHOW','TRANSFERRED'] %}
+        <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status.replace('_',' ') }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Department
+      <select name="department_id">
+        <option value="">All departments</option>
+        {% for department in departments %}
+        <option value="{{ department.id }}" {% if department_filter == department.id %}selected{% endif %}>{{ department.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Apply Filters</button>
+  </form>
 </section>
 
 <div class="grid two">
@@ -28,12 +57,10 @@
     </form>
   </section>
 
-  <section class="card">
-    <h2>Search Tickets</h2>
-    <form method="get" class="form-inline">
-      <input name="q" value="{{ query }}" placeholder="Ticket or customer">
-      <button type="submit">Search</button>
-    </form>
+  <section class="card reception-insight">
+    <span class="eyebrow">LIVE DESK STATUS</span>
+    <h2>{{ reception_summary.waiting }} customers waiting</h2>
+    <p>{{ reception_summary.called }} tickets called · {{ reception_summary.serving }} currently serving</p>
   </section>
 </div>
 

@@ -1,16 +1,19 @@
 # Smart Queue Tickets
 
-Smart Queue Tickets is a local-first queue management app for hackathon demos.
+Smart Queue Tickets is a local-first business queue platform for clinics, banks, government offices, universities, service centers, and other organizations.
+
+Businesses can register staff teams, issue digital queue tickets, operate reception and service counters, monitor live waiting-room activity, and analyze peak customer hours. Customers can register locally, generate or track their ticket, view wait estimates, and submit feedback.
 
 This version is optimized for speed and reliability, with a Flask UI and SQLite backend.
 
 ## Included Modules
 
-- Customer Portal: generate and track tickets, submit feedback
-- Receptionist Dashboard: register walk-ins, search, cancel, transfer
-- Staff Dashboard: call next, start/complete service, skip/recall, pause/resume counter
-- Public Queue Display: live serving and waiting lists with auto-refresh
-- Manager Dashboard: KPI summary and peak-hour insights
+- Business Accounts: register teams and secure staff/customer access by role
+- Customer Portal: generate digital tickets, track queue position and waiting time, submit feedback
+- Receptionist Dashboard: issue tickets to walk-ins, search customers, cancel or transfer tickets
+- Staff Dashboard: call, serve, complete, recall, skip, and transfer issued tickets
+- Public Queue Display: show live ticket calls and waiting-room activity
+- Manager Dashboard: monitor operations and identify peak customer hours, demand, counter load, and department performance
 
 ## Technology
 

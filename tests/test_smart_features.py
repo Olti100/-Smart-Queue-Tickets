@@ -80,3 +80,17 @@ def test_queue_arena_control_bounds(client):
     assert arena["incoming"] == 100
     assert arena["active_counters"] == 20
     assert arena["service_speed"] == 150
+
+
+def test_manager_visual_charts_render(client):
+    bootstrap_database()
+    client.post("/login", data={"username": "manager", "password": "manager123"})
+
+    response = client.get("/manager")
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+    assert "Peak customer hours" in html
+    assert "Ticket states" in html
+    assert "Department volume" in html
+    assert "Counter load" in html

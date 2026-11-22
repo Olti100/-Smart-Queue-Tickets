@@ -1,9 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
 <meta http-equiv="refresh" content="8">
-<section class="page-head">
-  <h1>Public Queue Display</h1>
-  <p>Live waiting-room board with automatic refresh.</p>
+<section class="page-head display-page-head">
+  <div>
+    <h1>Public Queue Display</h1>
+    <p>Live waiting-room board with automatic refresh.</p>
+  </div>
+  <span class="display-live"><i></i> Live</span>
 </section>
 
 <section class="card">
@@ -27,26 +30,32 @@
 </section>
 
 <div class="grid two">
-  <section class="card">
-    <h3>Currently Serving</h3>
-    <ul>
+  <section class="card display-panel serving-panel">
+    <div class="display-panel-heading"><h3>Currently Serving</h3><span class="live-pulse"></span></div>
+    <div class="display-ticket-stack">
       {% for t in called[:6] %}
-      <li><strong>{{ t.ticket_number }}</strong> - {{ t.counter.name if t.counter else 'Counter N/A' }}</li>
+      <div class="display-ticket-call" style="--item-delay: {{ loop.index0 * 90 }}ms">
+        <strong>{{ t.ticket_number }}</strong>
+        <span>{{ t.counter.name if t.counter else 'Counter N/A' }}</span>
+      </div>
       {% else %}
-      <li>No active calls.</li>
+      <div class="display-empty">No active calls.</div>
       {% endfor %}
-    </ul>
+    </div>
   </section>
 
-  <section class="card">
-    <h3>Next Tickets</h3>
-    <ul>
+  <section class="card display-panel next-panel">
+    <div class="display-panel-heading"><h3>Next Tickets</h3><span class="queue-count">{{ waiting|length }} queued</span></div>
+    <div class="display-next-list">
       {% for t in waiting %}
-      <li>{{ t.ticket_number }} - {{ t.department.name }}</li>
+      <div class="display-next-ticket" style="--item-delay: {{ loop.index0 * 70 }}ms">
+        <strong>{{ t.ticket_number }}</strong>
+        <span>{{ t.department.name }}</span>
+      </div>
       {% else %}
-      <li>No waiting tickets.</li>
+      <div class="display-empty">No waiting tickets.</div>
       {% endfor %}
-    </ul>
+    </div>
   </section>
 </div>
 {% endblock %}

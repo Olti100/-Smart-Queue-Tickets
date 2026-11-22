@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-head">
-  <h1>Manager Dashboard</h1>
-  <p>Monitor queue health, performance, and service outcomes in one place.</p>
+  <h1>Business Operations Analytics</h1>
+  <p>Issue digital tickets efficiently, monitor every counter, and identify peak hours and customer demand in one manager dashboard.</p>
 </section>
 
 <section class="card">
@@ -25,18 +25,20 @@
   </div>
 </section>
 
-<section class="card">
-  <h3>Peak Hours</h3>
-  <table>
-    <thead><tr><th>Hour</th><th>Tickets</th></tr></thead>
-    <tbody>
-      {% for row in peak_hours %}
-      <tr><td>{{ row.hour }}</td><td>{{ row.tickets }}</td></tr>
-      {% else %}
-      <tr><td colspan="2">No data for selected period.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<section class="card peak-hour-card">
+  <div class="chart-heading">
+    <div><span class="eyebrow">24-HOUR FLOW</span><h2>Peak customer hours</h2></div>
+    <span class="live-chip"><i></i> Selected period</span>
+  </div>
+  <div class="peak-hour-chart" role="img" aria-label="Tickets grouped by hour">
+    {% for bar in peak_hour_bars %}
+    <div class="peak-hour-column" title="{{ bar.count }} tickets">
+      <div class="peak-hour-value">{{ bar.count if bar.count else '' }}</div>
+      <div class="peak-hour-track"><i style="--peak-height: {{ bar.height }}%"></i></div>
+      {% if bar.hour % 3 == 0 %}<span>{{ '%02d' % bar.hour }}:00</span>{% else %}<span></span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
 </section>
 
 <section class="grid two coach-grid">
@@ -76,5 +78,88 @@
     <p>No departments available.</p>
     {% endfor %}
   </div>
+</section>
+
+<section class="visual-grid">
+  <article class="card trend-card">
+    <div class="chart-heading">
+      <div><span class="eyebrow">FLOW SIGNAL</span><h2>7-day ticket pulse</h2></div>
+      <span class="live-chip"><i></i> Live database</span>
+    </div>
+    <svg class="trend-chart" viewBox="0 0 600 210" role="img" aria-label="Seven day ticket trend">
+      <defs>
+        <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.34"/>
+          <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.02"/>
+        </linearGradient>
+        <filter id="trendGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g class="chart-grid-lines">
+        <line x1="20" y1="40" x2="580" y2="40"/><line x1="20" y1="86" x2="580" y2="86"/><line x1="20" y1="132" x2="580" y2="132"/><line x1="20" y1="178" x2="580" y2="178"/>
+      </g>
+      <polygon class="trend-area" points="20,180 {% for point in trend_points %}{{ point.x }},{{ point.y }} {% endfor %}580,180" fill="url(#trendFill)"/>
+      <polyline class="trend-line" points="{% for point in trend_points %}{{ point.x }},{{ point.y }}{% if not loop.last %} {% endif %}{% endfor %}" fill="none" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#trendGlow)"/>
+      {% for point in trend_points %}
+      <g class="trend-point">
+        <circle cx="{{ point.x }}" cy="{{ point.y }}" r="5" fill="#fff" stroke="#4f46e5" stroke-width="3"/>
+        <text x="{{ point.x }}" y="203" text-anchor="middle">{{ point.day }}</text>
+      </g>
+      {% endfor %}
+    </svg>
+  </article>
+
+  <article class="card status-card">
+    <div class="chart-heading"><div><span class="eyebrow">LIVE DISTRIBUTION</span><h2>Ticket states</h2></div></div>
+    <div class="status-donut-wrap">
+      <div class="status-donut">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Ticket status distribution">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#eef2f6" stroke-width="14"/>
+          {% for item in status_mix %}
+          {% set segment_color = '#f79009' if item.name == 'Waiting' else '#4f46e5' if item.name == 'Serving' else '#16b364' if item.name == 'Completed' else '#98a2b3' %}
+          <circle class="status-segment" cx="60" cy="60" r="46" fill="none" stroke="{{ segment_color }}" stroke-width="14" pathLength="100" stroke-dasharray="{{ item.percent }} {{ 100 - item.percent }}" stroke-dashoffset="-{{ item.offset }}"/>
+          {% endfor %}
+        </svg>
+        <div class="status-donut-center"><strong>{{ kpis.total_tickets }}</strong><small>tickets</small></div>
+      </div>
+    </div>
+    <div class="status-legend">
+      {% for item in status_mix %}
+      <div><span class="legend-dot {{ item.name.lower() }}"></span><span>{{ item.name }}</span><strong>{{ item.count }} · {{ item.percent }}%</strong></div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="visual-grid visual-grid-bottom">
+  <article class="card department-card">
+    <div class="chart-heading"><div><span class="eyebrow">DEMAND MAP</span><h2>Department volume</h2></div></div>
+    <div class="department-bars">
+      {% set department_max = namespace(value=1) %}
+      {% for item in department_mix %}{% if item.count > department_max.value %}{% set department_max.value = item.count %}{% endif %}{% endfor %}
+      {% for item in department_mix %}
+      <div class="department-bar-row">
+        <div><span>{{ item.name }}</span><strong>{{ item.count }}</strong></div>
+        <div class="department-bar-track"><i style="--bar-width: {{ (item.count / department_max.value * 100) | round }}%"></i></div>
+      </div>
+      {% else %}
+      <p class="muted-empty">No department activity in this period.</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card counter-card">
+    <div class="chart-heading"><div><span class="eyebrow">CAPACITY PULSE</span><h2>Counter load</h2></div></div>
+    <div class="counter-loads">
+      {% for counter in counter_stats %}
+      <div class="counter-load {% if counter.paused %}paused{% endif %}">
+        <div><span>{{ counter.name }}</span><strong>{{ counter.capacity }}%</strong></div>
+        <div class="counter-load-track"><i style="--load-width: {{ counter.capacity }}%"></i></div>
+        <small>{{ counter.waiting }} live · {{ counter.completed }} completed</small>
+      </div>
+      {% else %}
+      <p class="muted-empty">No counters configured.</p>
+      {% endfor %}
+    </div>
+  </article>
 </section>
 {% endblock %}

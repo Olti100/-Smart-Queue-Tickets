@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-head">
-  <h1>Customer Portal</h1>
-  <p>Generate a queue ticket, check live progress, and submit service feedback.</p>
+  <h1>Digital Ticket Portal</h1>
+  <p>Join a participating business queue, receive a digital ticket, track your place and estimated wait, and view live service status.</p>
 </section>
 
 <div class="grid two">
@@ -74,5 +74,10 @@
     <strong>{{ weather.label }}</strong>
   </div>
   <div class="weather-stat"><small>Waiting now</small><b>{{ weather.waiting }}</b></div>
+</section>
+
+<section class="platform-explainer">
+  <div><span>FOR PARTICIPATING BUSINESSES</span><strong>Digital tickets. Live queues. Peak-hour insight.</strong></div>
+  <p>Organizations use this platform to register teams, issue tickets, manage counters, and understand customer traffic.</p>
 </section>
 {% endblock %}
