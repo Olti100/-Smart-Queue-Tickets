@@ -12,9 +12,9 @@
 
   <section class="auth-card">
     <div class="auth-heading">
-      <span class="eyebrow">Welcome back</span>
+      <span class="eyebrow">TEAM OR CUSTOMER ACCESS</span>
       <h2>Sign in</h2>
-      <p>Use your staff or customer account.</p>
+      <p>Business staff use manager, reception, or staff accounts. Customers use a customer account.</p>
     </div>
 
     <form method="post" class="auth-form">
@@ -36,6 +36,11 @@
     </details>
 
     <p class="auth-switch">New customer? <a href="{{ url_for('register') }}">Create account</a></p>
+
+    <div class="audience-links">
+      <a href="{{ url_for('register') }}"><span>Customer</span><strong>Track digital tickets</strong><b>Register →</b></a>
+      <a href="{{ url_for('business_register') }}"><span>Business</span><strong>Manage counters and teams</strong><b>Create workspace →</b></a>
+    </div>
   </section>
 </div>
 {% endblock %}

@@ -80,7 +80,7 @@ def roles_required(*roles: Role):
 @app.get("/")
 def home():
     if not session.get("user_id"):
-        return redirect(url_for("customer_portal"))
+        return render_template("welcome.html")
 
     role = session.get("user_role")
     if role in {Role.ADMIN.value, Role.MANAGER.value}:
@@ -575,6 +575,61 @@ def register():
                     return redirect(url_for("customer_portal"))
 
     return render_template("register.html")
+
+
+@app.route("/business/register", methods=["GET", "POST"])
+def business_register():
+    if session.get("user_id"):
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        organization_name = request.form.get("organization_name", "").strip()
+        full_name = request.form.get("full_name", "").strip()
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if len(organization_name) < 2:
+            flash("Enter your organization name.", "danger")
+        elif len(full_name) < 2:
+            flash("Enter the manager's full name.", "danger")
+        elif len(username) < 3:
+            flash("Username must be at least 3 characters.", "danger")
+        elif len(password) < 6:
+            flash("Password must be at least 6 characters.", "danger")
+        elif password != confirm_password:
+            flash("Passwords do not match.", "danger")
+        else:
+            with get_session() as db:
+                existing = db.scalar(select(User).where(User.username == username))
+                if existing:
+                    flash("That username is already registered.", "danger")
+                else:
+                    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                    manager = User(
+                        full_name=full_name,
+                        username=username,
+                        password_hash=password_hash,
+                        role=Role.MANAGER,
+                        is_active=True,
+                    )
+                    db.add(manager)
+                    db.flush()
+
+                    setting = db.scalar(select(Setting).where(Setting.key == "organization_name"))
+                    if setting:
+                        setting.value = organization_name
+                    else:
+                        db.add(Setting(key="organization_name", value=organization_name))
+
+                    session["user_id"] = manager.id
+                    session["user_name"] = manager.full_name
+                    session["user_role"] = manager.role.value
+                    session["organization_name"] = organization_name
+                    flash(f"Business workspace created for {organization_name}.", "success")
+                    return redirect(url_for("manager_dashboard"))
+
+    return render_template("business_register.html")
 
 
 @app.get("/arena")

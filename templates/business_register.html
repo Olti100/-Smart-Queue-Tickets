@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-layout business-auth">
+  <section class="auth-visual">
+    <div class="auth-logo"><img src="{{ url_for('static', filename='logo.svg') }}" alt="Smart Queue Tickets"></div>
+    <div>
+      <span class="eyebrow">BUSINESS WORKSPACE</span>
+      <h1>One queue system.<br>Every counter.</h1>
+      <p>Register your organization to create digital tickets, assign reception and staff roles, monitor counters, and identify peak hours.</p>
+    </div>
+  </section>
+
+  <section class="auth-card">
+    <div class="auth-heading">
+      <span class="eyebrow">CREATE BUSINESS ACCOUNT</span>
+      <h2>Register organization</h2>
+      <p>Your account starts with manager access.</p>
+    </div>
+
+    <form method="post" class="auth-form">
+      <label>Organization name
+        <input type="text" name="organization_name" placeholder="Example Clinic / City Bank" required>
+      </label>
+      <label>Manager full name
+        <input type="text" name="full_name" autocomplete="name" placeholder="Alex Morgan" required>
+      </label>
+      <label>Username
+        <input type="text" name="username" autocomplete="username" placeholder="business.manager" minlength="3" required>
+      </label>
+      <div class="auth-fields">
+        <label>Password
+          <input type="password" name="password" autocomplete="new-password" placeholder="6+ characters" minlength="6" required>
+        </label>
+        <label>Confirm password
+          <input type="password" name="confirm_password" autocomplete="new-password" placeholder="Repeat password" minlength="6" required>
+        </label>
+      </div>
+      <button type="submit" class="primary-action">Create business workspace <span>→</span></button>
+    </form>
+
+    <p class="auth-switch">Need a customer account? <a href="{{ url_for('register') }}">Register customer</a></p>
+  </section>
+</div>
+{% endblock %}

@@ -61,3 +61,12 @@ pytest -q
 
 - Fully local, no cloud services.
 - All queue metrics and dashboards read from SQLite records.
+
+## How the platform works
+
+The app has two audiences:
+
+1. **Businesses** register a manager workspace and use Reception, Staff, Analytics, Queue Arena, and Database tools.
+2. **Customers** generate and track digital queue tickets, see their position and estimated wait, and submit feedback.
+
+The Public Queue Display is a shared waiting-room view for both teams and customers.

@@ -16,27 +16,27 @@
       </a>
 
       <div class="side-section">
-        <span class="side-label">Explore</span>
+        <span class="side-label">Choose a role</span>
         <a class="side-link {% if request.path == url_for('customer_portal') %}active{% endif %}" href="{{ url_for('customer_portal') }}">
-          <span class="nav-icon">◉</span><span>Customer Portal</span>
+          <span class="nav-icon">◉</span><span>Customer: Get Ticket</span>
         </a>
         <a class="side-link {% if request.path == url_for('public_display') %}active{% endif %}" href="{{ url_for('public_display') }}">
-          <span class="nav-icon">▦</span><span>Queue Display</span>
+          <span class="nav-icon">▦</span><span>Waiting Room Display</span>
         </a>
       </div>
 
       {% if session.get('user_id') %}
       <div class="side-section">
-        <span class="side-label">Workspace</span>
+        <span class="side-label">Business operations</span>
         {% set role = session.get('user_role') %}
         {% if role in ['ADMIN', 'MANAGER', 'RECEPTIONIST'] %}
         <a class="side-link {% if request.path == url_for('receptionist_dashboard') %}active{% endif %}" href="{{ url_for('receptionist_dashboard') }}">
-          <span class="nav-icon">✦</span><span>Reception</span>
+          <span class="nav-icon">✦</span><span>Reception: Issue Tickets</span>
         </a>
         {% endif %}
         {% if role in ['ADMIN', 'MANAGER', 'STAFF'] %}
         <a class="side-link {% if request.path == url_for('staff_dashboard') %}active{% endif %}" href="{{ url_for('staff_dashboard') }}">
-          <span class="nav-icon">◆</span><span>Staff Desk</span>
+          <span class="nav-icon">◆</span><span>Staff: Serve Tickets</span>
         </a>
         {% endif %}
         {% if role in ['ADMIN', 'MANAGER'] %}

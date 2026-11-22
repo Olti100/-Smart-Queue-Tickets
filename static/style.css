@@ -563,6 +563,37 @@ tbody tr:hover { background: #f9fafb; }
 .platform-explainer p { max-width:520px; margin:0; color:var(--muted); text-align:right; }
 @media (max-width:760px) { .platform-explainer { align-items:flex-start; flex-direction:column; } .platform-explainer p { text-align:left; } }
 
+.welcome-hero { min-height:420px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); gap:28px; align-items:center; margin-bottom:24px; }
+.welcome-copy h1 { margin:8px 0 18px; font-size:clamp(44px,6vw,78px); line-height:.96; letter-spacing:-4px; }
+.welcome-copy h1 span { color:var(--blue); }
+.welcome-copy p { max-width:620px; color:var(--muted); font-size:17px; line-height:1.7; }
+.welcome-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:24px; }
+.welcome-primary,.welcome-secondary { min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:14px; border-radius:12px; padding:12px 16px; text-decoration:none; font-weight:850; }
+.welcome-primary { background:linear-gradient(135deg,var(--blue),#684ee8); color:white; box-shadow:0 12px 24px rgba(79,70,229,.18); }
+.welcome-primary span { font-size:18px; }
+.welcome-secondary { border:1px solid var(--line); background:white; color:var(--ink); }
+.welcome-preview { min-height:350px; border:1px solid rgba(255,255,255,.08); border-radius:24px; padding:20px; color:white; background:radial-gradient(circle at 82% 12%,rgba(110,231,249,.16),transparent 11rem),linear-gradient(145deg,#101828,#1d2939 72%,#342c72); box-shadow:var(--shadow); }
+.preview-header { display:flex; justify-content:space-between; align-items:center; color:#d0d5dd; }
+.preview-header b { display:inline-flex; align-items:center; gap:7px; color:#a6f4c5; font-size:12px; }
+.preview-header i { width:8px; height:8px; border-radius:50%; background:#16b364; box-shadow:0 0 0 5px rgba(22,179,100,.12); }
+.preview-ticket { min-height:210px; border:1px solid rgba(255,255,255,.10); border-radius:18px; margin:16px 0 12px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,.06); }
+.preview-ticket small { color:#98a2b3; letter-spacing:1.2px; }
+.preview-ticket strong { margin:8px 0; font-size:64px; letter-spacing:-3px; }
+.preview-ticket span { color:#bfefff; }
+.preview-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.preview-metrics div { border:1px solid rgba(255,255,255,.08); border-radius:11px; padding:9px; background:rgba(255,255,255,.04); }
+.preview-metrics small { display:block; color:#98a2b3; }.preview-metrics strong { display:block; margin-top:4px; }
+.role-showcase { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.role-showcase article { position:relative; min-height:220px; border:1px solid var(--line); border-radius:16px; background:white; padding:18px; box-shadow:var(--shadow); }
+.role-number { position:absolute; right:14px; top:12px; color:#d0d5dd; font-size:28px; font-weight:900; }
+.role-showcase article h2 { margin:8px 0 12px; }
+.role-showcase article p { color:var(--muted); line-height:1.65; }
+.welcome-bottom { display:flex; justify-content:space-between; align-items:center; gap:18px; border:1px solid var(--line); border-radius:16px; background:white; padding:18px; box-shadow:var(--shadow); }
+.welcome-bottom h2 { margin:5px 0 0; }.welcome-bottom-links { display:flex; gap:8px; }.welcome-bottom-links a { min-height:44px; display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:10px; background:#f8fafc; color:var(--ink); padding:10px 12px; text-decoration:none; font-weight:800; }
+.audience-links { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+.audience-links a { display:grid; gap:3px; border:1px solid var(--line); border-radius:12px; background:#f8fafc; color:var(--ink); padding:10px; text-decoration:none; }
+.audience-links span { color:var(--blue); font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; }.audience-links strong { font-size:12px; }.audience-links b { color:var(--muted); font-size:11px; }
+
 @media (max-width:760px) {
   .sidebar { height:100dvh; }
   .weather-card, .arena-card { width:100%; }

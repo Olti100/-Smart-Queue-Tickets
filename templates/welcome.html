@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="welcome-hero">
+  <div class="welcome-copy">
+    <span class="eyebrow">SMART QUEUE PLATFORM</span>
+    <h1>One system for<br><span>waiting, tickets, and teams.</span></h1>
+    <p>Businesses issue digital queue tickets, manage reception and service counters, and understand peak hours. Customers get a simple place to join and track their queue.</p>
+    <div class="welcome-actions">
+      <a class="welcome-primary" href="{{ url_for('business_register') }}">Create a business account <span>→</span></a>
+      <a class="welcome-secondary" href="{{ url_for('customer_portal') }}">Get a digital ticket</a>
+    </div>
+  </div>
+
+  <div class="welcome-preview">
+    <div class="preview-header"><span>Live queue</span><b><i></i> Open</b></div>
+    <div class="preview-ticket"><small>NOW SERVING</small><strong>A019</strong><span>Counter 2</span></div>
+    <div class="preview-metrics">
+      <div><small>Waiting</small><strong>12</strong></div>
+      <div><small>Avg. wait</small><strong>18m</strong></div>
+      <div><small>Peak</small><strong>10 AM</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="role-showcase">
+  <article>
+    <span class="role-number">01</span>
+    <div><span class="eyebrow">FOR BUSINESSES</span><h2>Register your team</h2></div>
+    <p>Create a manager account for one organization, add departments and counters, and see live operations in one workspace.</p>
+  </article>
+  <article>
+    <span class="role-number">02</span>
+    <div><span class="eyebrow">FOR RECEPTION & STAFF</span><h2>Issue and operate tickets</h2></div>
+    <p>Reception creates digital tickets. Staff calls, starts, completes, recalls, skips, and transfers customers.</p>
+  </article>
+  <article>
+    <span class="role-number">03</span>
+    <div><span class="eyebrow">FOR CUSTOMERS</span><h2>Join and track the queue</h2></div>
+    <p>Customers choose a department and service, receive a unique ticket, and see their position and waiting estimate.</p>
+  </article>
+</section>
+
+<section class="welcome-bottom">
+  <div>
+    <span class="eyebrow">PEOPLE · COUNTERS · INSIGHTS</span>
+    <h2>Built for busy service environments.</h2>
+  </div>
+  <div class="welcome-bottom-links">
+    <a href="{{ url_for('login') }}">Business team sign in</a>
+    <a href="{{ url_for('public_display') }}">View queue display</a>
+  </div>
+</section>
+{% endblock %}
