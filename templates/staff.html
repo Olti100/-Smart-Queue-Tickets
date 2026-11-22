@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head">
+  <h1>Staff Operations</h1>
+  <p>Call, serve, and complete customers with fast counter controls.</p>
+</section>
+
+<section class="card">
+  <h2>Staff Dashboard</h2>
+  <form method="get" class="form-inline">
+    <label>Counter
+      <select name="counter_id">
+        {% for c in counters %}
+        <option value="{{ c.id }}" {% if selected_counter and c.id == selected_counter.id %}selected{% endif %}>{{ c.name }} ({{ c.department.name }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit">Load</button>
+  </form>
+
+  {% if selected_counter %}
+  <div class="ticket-box">
+    <p><strong>Selected Counter:</strong> {{ selected_counter.name }}</p>
+    <p><strong>Counter Status:</strong> <span class="badge">{{ 'Paused' if selected_counter.is_paused else 'Active' }}</span></p>
+    <p><strong>Current Ticket:</strong> {{ current_ticket.ticket_number if current_ticket else 'None' }}</p>
+  </div>
+
+  <div class="actions">
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="call_next"><button>Call Next</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="start"><button>Start Service</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="complete"><button>Complete Service</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="recall"><button>Recall</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="pause"><button>Pause Counter</button></form>
+    <form method="post" class="inline-form"><input type="hidden" name="counter_id" value="{{ selected_counter.id }}"><input type="hidden" name="action" value="resume"><button>Resume Counter</button></form>
+  </div>
+
+  <form method="post" class="form-inline">
+    <input type="hidden" name="counter_id" value="{{ selected_counter.id }}">
+    <input type="hidden" name="action" value="skip">
+    <input name="skip_reason" placeholder="Skip reason" value="No response">
+    <button>Skip Ticket</button>
+  </form>
+
+  <h3>Waiting in Department</h3>
+  <ul>
+    {% for t in waiting %}<li>{{ t.ticket_number }} - {{ t.customer_name or 'Walk-in' }}</li>{% else %}<li>No waiting tickets.</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

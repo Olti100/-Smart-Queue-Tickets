@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head">
+  <h1>Manager Dashboard</h1>
+  <p>Monitor queue health, performance, and service outcomes in one place.</p>
+</section>
+
+<section class="card">
+  <h2>KPI Overview</h2>
+  <form method="get" class="form-inline">
+    <label>Start <input type="date" name="start" value="{{ start }}"></label>
+    <label>End <input type="date" name="end" value="{{ end }}"></label>
+    <button type="submit">Apply</button>
+  </form>
+
+  <div class="kpis">
+    <div class="kpi"><span>Total</span><strong>{{ kpis.total_tickets }}</strong></div>
+    <div class="kpi"><span>Waiting</span><strong>{{ kpis.waiting }}</strong></div>
+    <div class="kpi"><span>Serving</span><strong>{{ kpis.serving }}</strong></div>
+    <div class="kpi"><span>Completed</span><strong>{{ kpis.completed }}</strong></div>
+    <div class="kpi"><span>Avg Wait</span><strong>{{ kpis.avg_wait }}m</strong></div>
+    <div class="kpi"><span>Avg Service</span><strong>{{ kpis.avg_service }}m</strong></div>
+    <div class="kpi"><span>Completion</span><strong>{{ kpis.completion_rate }}%</strong></div>
+    <div class="kpi"><span>Abandonment</span><strong>{{ kpis.abandonment_rate }}%</strong></div>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Peak Hours</h3>
+  <table>
+    <thead><tr><th>Hour</th><th>Tickets</th></tr></thead>
+    <tbody>
+      {% for row in peak_hours %}
+      <tr><td>{{ row.hour }}</td><td>{{ row.tickets }}</td></tr>
+      {% else %}
+      <tr><td colspan="2">No data for selected period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

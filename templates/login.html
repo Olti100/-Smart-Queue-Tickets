@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card narrow">
+  <h1 class="title-xl">Control Center Login</h1>
+  <p class="hint">Access role-based queue operations for staff and management.</p>
+  <form method="post" class="form-grid">
+    <label>Username<input type="text" name="username" required></label>
+    <label>Password<input type="password" name="password" required></label>
+    <button type="submit">Sign In</button>
+  </form>
+  <p class="hint">Demo: admin/admin123, manager/manager123, reception/reception123, staff/staff123</p>
+</section>
+{% endblock %}
